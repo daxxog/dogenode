@@ -21,6 +21,6 @@ debug: container-built.txt
 	podman run \
 		-i \
 		-t \
-		--entrypoint /bin/sh \
+		--entrypoint /bin/bash \
 		localhost/$$(git remote get-url origin | awk '{split($$0,a,"/");print a[2]}' | sed 's/\.git//g') \
 	;

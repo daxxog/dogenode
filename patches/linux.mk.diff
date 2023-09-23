@@ -1,0 +1,31 @@
+diff --git a/depends/hosts/linux.mk b/depends/hosts/linux.mk
+index b13a0f1ad..9b7aa6953 100644
+--- a/depends/hosts/linux.mk
++++ b/depends/hosts/linux.mk
+@@ -9,6 +9,7 @@ linux_debug_CXXFLAGS=$(linux_debug_CFLAGS)
+
+ linux_debug_CPPFLAGS=-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC
+
++ifeq ($(strip $(USE_MUSL_LIBC)),)
+ ifeq (86,$(findstring 86,$(build_arch)))
+ i686_linux_CC=gcc -m32
+ i686_linux_CXX=g++ -m32
+@@ -29,3 +30,18 @@ i686_linux_CXX=$(default_host_CXX) -m32
+ x86_64_linux_CC=$(default_host_CC) -m64
+ x86_64_linux_CXX=$(default_host_CXX) -m64
+ endif
++
++else
++
++x86_64_linux_AR=/usr/src/musl-cross-make/output/bin/$(host)-gcc-ar
++x86_64_linux_CC=/usr/src/musl-cross-make/output/bin/$(host)-gcc -m64
++x86_64_linux_CXX=/usr/src/musl-cross-make/output/bin/$(host)-g++ -m64
++x86_64_linux_LD=/usr/src/musl-cross-make/output/bin/$(host)-ld
++x86_64_linux_NM=/usr/src/musl-cross-make/output/bin/$(host)-gcc-nm
++x86_64_linux_OBJDUMP=/usr/src/musl-cross-make/output/bin/$(host)-objdump
++x86_64_linux_RANLIB=/usr/src/musl-cross-make/output/bin/$(host)-gcc-ranlib
++x86_64_linux_STRIP=/usr/src/musl-cross-make/output/bin/$(host)-strip
++
++linux_CFLAGS+=-static
++linux_CXXFLAGS+=-static
++endif

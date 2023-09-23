@@ -1,0 +1,42 @@
+From 18961fbe859895974b67a71dc05a570537888c8d Mon Sep 17 00:00:00 2001
+From: root <Doge>
+Date: Sun, 19 Jun 2022 19:24:47 +0000
+Subject: [PATCH]        new file:   config.mak
+
+---
+ config.mak | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+ create mode 100644 config.mak
+
+diff --git a/config.mak b/config.mak
+new file mode 100644
+index 0000000..7786c96
+--- /dev/null
++++ b/config.mak
+@@ -0,0 +1,23 @@
++TARGET =
++
++BINUTILS_VER = 2.37
++GCC_VER = 10.3.0
++MUSL_VER = 1.2.3
++LINUX_VER = headers-4.19.88-1
++
++COMMON_CONFIG += --with-debug-prefix-map=$(CURDIR)=
++
++COMMON_CONFIG += CFLAGS="-fPIC -g0 -O2"
++COMMON_CONFIG += CXXFLAGS="-fPIC -g0 -O2"
++COMMON_CONFIG += LDFLAGS="-s"
++
++COMMON_CONFIG += --disable-shared
++COMMON_CONFIG += --enable-static
++
++DL_CMD = curl -C - -L -o
++
++GCC_CONFIG += --disable-libquadmath
++GCC_CONFIG += --disable-multilib
++GCC_CONFIG += --disable-nls
++GCC_CONFIG += --enable-default-pie
++GCC_CONFIG += --enable-default-ssp
+--
+2.30.2
+
