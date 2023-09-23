@@ -1,0 +1,37 @@
+---
+name: Docker Push
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build and push Docker image
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          GITHUB_REF: ${{ github.ref }}
+          DOCKERHUB_LOCATION: docker.io/${{ github.repository }}
+        if: ${{ github.repository_owner == github.actor }}
+        run: |
+          echo $DOCKERHUB_PASSWORD | docker login --username $DOCKERHUB_USERNAME --password-stdin
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --push \
+            --tag $DOCKERHUB_LOCATION:latest \
+            --tag $DOCKERHUB_LOCATION:${GITHUB_REF#refs/tags/} \
+            --build-arg GITHUB_REF=${GITHUB_REF#refs/tags/} .
