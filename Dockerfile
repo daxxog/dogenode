@@ -72,6 +72,9 @@ RUN set -x \
 # compile musl-cross-make
 RUN make TARGET=$(uname -m)-linux-musl install -j$(nproc)
 
+# fix `error: provided command 'aarch64-linux-musl-g++' not found` when building boost
+ENV PATH=/usr/src/musl-cross-make/output/bin:${PATH}
+
 # download DOGE source code
 RUN mkdir -p ${DOGE_ROOT}/..
 WORKDIR ${DOGE_ROOT}/..
