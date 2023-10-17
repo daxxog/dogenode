@@ -7,12 +7,47 @@ help:
 	@cat Makefile | grep ".PHONY" | grep -v ".PHONY: _" | sed 's/.PHONY: //g'
 
 
-container-built.txt: Dockerfile
+Dockerfile.phase1.built: Dockerfile.phase1
 	podman build . \
-		-t localhost/$$(git remote get-url origin | awk '{split($$0,a,"/");print a[2]}' | sed 's/\.git//g') \
+		-f Dockerfile.phase1 \
+		-t localhost/$$(git remote get-url origin | awk '{split($$0,a,"/");print a[2]}' | sed 's/\.git//g'):phase1 \
 	;
-	echo "$$(date) :: localhost/$$(git remote get-url origin | awk '{split($$0,a,"/");print a[2]}' | sed 's/\.git//g')" \
-		| tee -a container-built.txt \
+	echo "$$(date) :: localhost/$$(git remote get-url origin | awk '{split($$0,a,"/");print a[2]}' | sed 's/\.git//g'):phase1" \
+		| tee -a Dockerfile.phase1.built \
+	;
+
+
+Dockerfile.phase2.built: Dockerfile.phase1.built Dockerfile.phase2
+	podman build . \
+		-f Dockerfile.phase2 \
+		--build-arg PHASE1_IMG=localhost/$$(git remote get-url origin | awk '{split($$0,a,"/");print a[2]}' | sed 's/\.git//g'):phase1 \
+		-t localhost/$$(git remote get-url origin | awk '{split($$0,a,"/");print a[2]}' | sed 's/\.git//g'):phase2 \
+	;
+	echo "$$(date) :: localhost/$$(git remote get-url origin | awk '{split($$0,a,"/");print a[2]}' | sed 's/\.git//g'):phase2" \
+		| tee -a Dockerfile.phase2.built \
+	;
+
+
+Dockerfile.phase3.built: Dockerfile.phase2.built Dockerfile.phase3
+	podman build . \
+		-f Dockerfile.phase3 \
+		--build-arg PHASE2_IMG=localhost/$$(git remote get-url origin | awk '{split($$0,a,"/");print a[2]}' | sed 's/\.git//g'):phase2 \
+		-t localhost/$$(git remote get-url origin | awk '{split($$0,a,"/");print a[2]}' | sed 's/\.git//g'):phase3 \
+	;
+	echo "$$(date) :: localhost/$$(git remote get-url origin | awk '{split($$0,a,"/");print a[2]}' | sed 's/\.git//g'):phase3" \
+		| tee -a Dockerfile.phase3.built \
+	;
+
+
+container-built.txt: Dockerfile.phase1.built Dockerfile.phase2.built Dockerfile.phase3.built
+	cat \
+		<(echo Dockerfile.phase1.built) Dockerfile.phase1.built \
+		<(echo Dockerfile.phase2.built) Dockerfile.phase2.built \
+		<(echo Dockerfile.phase3.built) Dockerfile.phase3.built \
+	> container-built.txt
+	podman tag \
+		localhost/$$(git remote get-url origin | awk '{split($$0,a,"/");print a[2]}' | sed 's/\.git//g'):phase3 \
+		localhost/$$(git remote get-url origin | awk '{split($$0,a,"/");print a[2]}' | sed 's/\.git//g') \
 	;
 
 
