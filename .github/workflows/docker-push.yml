@@ -7,7 +7,7 @@ on:
       - '*'
 
 jobs:
-  build-and-push:
+  build-and-push-phase1:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,7 +20,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
-      - name: Build and push Docker image
+      - name: Build and push Docker image (Phase 1)
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
@@ -32,6 +32,70 @@ jobs:
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --push \
+            --tag $DOCKERHUB_LOCATION:phase1 \
+            --tag $DOCKERHUB_LOCATION:phase1-${GITHUB_REF#refs/tags/} \
+            -f Dockerfile.phase1 .
+
+  build-and-push-phase2:
+    needs: build-and-push-phase1
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build and push Docker image (Phase 2)
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          GITHUB_REF: ${{ github.ref }}
+          DOCKERHUB_LOCATION: docker.io/${{ github.repository }}
+        if: ${{ github.repository_owner == github.actor }}
+        run: |
+          echo $DOCKERHUB_PASSWORD | docker login --username $DOCKERHUB_USERNAME --password-stdin
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --push \
+            --build-arg PHASE1_IMG=$DOCKERHUB_LOCATION:phase1-${GITHUB_REF#refs/tags/} \
+            --tag $DOCKERHUB_LOCATION:phase2 \
+            --tag $DOCKERHUB_LOCATION:phase2-${GITHUB_REF#refs/tags/} \
+            -f Dockerfile.phase2 .
+
+  build-and-push-phase3:
+    needs: build-and-push-phase2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build and push Docker image (Phase 3)
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          GITHUB_REF: ${{ github.ref }}
+          DOCKERHUB_LOCATION: docker.io/${{ github.repository }}
+        if: ${{ github.repository_owner == github.actor }}
+        run: |
+          echo $DOCKERHUB_PASSWORD | docker login --username $DOCKERHUB_USERNAME --password-stdin
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --push \
+            --build-arg PHASE2_IMG=$DOCKERHUB_LOCATION:phase2-${GITHUB_REF#refs/tags/} \
+            --tag $DOCKERHUB_LOCATION:phase3 \
+            --tag $DOCKERHUB_LOCATION:phase3-${GITHUB_REF#refs/tags/} \
             --tag $DOCKERHUB_LOCATION:latest \
             --tag $DOCKERHUB_LOCATION:${GITHUB_REF#refs/tags/} \
-            --build-arg GITHUB_REF=${GITHUB_REF#refs/tags/} .
+            -f Dockerfile.phase3 .
