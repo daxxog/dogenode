@@ -1,4 +1,4 @@
-## 0.0.3 (unreleased)
+## 0.0.3 (2023-10-17)
 
 
 - Testing multi-stage build workflow. #1
