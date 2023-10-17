@@ -19,8 +19,9 @@ RUN git clone https://github.com/yaegashi/muslstack.git
 WORKDIR /usr/src/muslstack
 RUN git checkout d19cc5866abce3ca59dfc1666df7cc97097d0933 && go build main.go
 
-ARG VERSION
-FROM daxxog/dogenode:builder-phase2-${VERSION} as builder
+
+ARG PHASE2_IMG
+FROM ${PHASE2_IMG} as builder
 
 # build doge
 RUN ./autogen.sh

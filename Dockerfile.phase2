@@ -1,6 +1,6 @@
 # vi:syntax=dockerfile
-ARG VERSION
-FROM daxxog/dogenode:builder-phase1-${VERSION}
+ARG PHASE1_IMG
+FROM ${PHASE1_IMG}
 
 # fix `error: provided command 'aarch64-linux-musl-g++' not found` when building boost
 ENV PATH=/usr/src/musl-cross-make/output/bin:${PATH}
