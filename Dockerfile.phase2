@@ -1,0 +1,22 @@
+# vi:syntax=dockerfile
+ARG VERSION
+FROM daxxog/dogenode:builder-phase1-${VERSION}
+
+# fix `error: provided command 'aarch64-linux-musl-g++' not found` when building boost
+ENV PATH=/usr/src/musl-cross-make/output/bin:${PATH}
+
+# download DOGE source code
+RUN mkdir -p ${DOGE_ROOT}/..
+WORKDIR ${DOGE_ROOT}/..
+RUN git clone https://github.com/dogecoin/dogecoin.git ${DOGE_ROOT}
+
+# switch to the DOGE source code directory on the tagged version
+WORKDIR ${DOGE_ROOT}
+RUN git checkout "tags/${DOGE_VERSION}" -b tmpbuildenv && git clean -fdx
+
+# copy over and apply patches
+COPY ./patches ./patches
+RUN git apply patches/*.diff
+
+# build dependencies
+RUN cd depends && make -j$(nproc) NO_QT=1 USE_MUSL_LIBC=1 HOST=$(uname -m)-linux-musl

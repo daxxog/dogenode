@@ -1,0 +1,68 @@
+# vi:syntax=dockerfile
+
+FROM golang:1.18-bullseye as muslstack
+
+# upgrade and install debian packages
+ENV DEBIAN_FRONTEND="noninteractive"
+# fix "September 30th problem"
+# https://github.com/nodesource/distributions/issues/1266#issuecomment-931597235
+RUN apt-get update; apt-get install -y ca-certificates && \
+    apt-get update \
+    && apt-get install apt-utils -y \
+    && apt-get upgrade -y \
+    && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/* \
+;
+WORKDIR /usr/src
+RUN git clone https://github.com/yaegashi/muslstack.git
+WORKDIR /usr/src/muslstack
+RUN git checkout d19cc5866abce3ca59dfc1666df7cc97097d0933 && go build main.go
+
+ARG VERSION
+FROM daxxog/dogenode:builder-phase2-${VERSION} as builder
+
+# build doge
+RUN ./autogen.sh
+RUN CONFIG_SITE=$(pwd)/depends/$(uname -m)-linux-musl/share/config.site ./configure --enable-reduce-exports --enable-lto LDFLAGS="-Wl,-O2" LIBTOOL_APP_LDFLAGS="-all-static"
+RUN make -j$(nproc)
+
+# install doge
+RUN make install
+
+# patch doge binaries
+COPY --from=muslstack /usr/src/muslstack/main /usr/local/bin/muslstack
+RUN set -x \
+    && muslstack -s 0x900000 /usr/local/bin/dogecoind \
+    && muslstack -s 0x900000 /usr/local/bin/dogecoin-cli \
+    && muslstack -s 0x900000 /usr/local/bin/dogecoin-tx \
+    && muslstack -s 0x900000 /usr/local/bin/test_dogecoin \
+    && muslstack -s 0x900000 /usr/local/bin/bench_dogecoin \
+;
+
+# final stage output image
+FROM amazonlinux:2
+RUN yum update -y && \
+    yum install -y \
+        shadow-utils \
+        rsync \
+ && yum clean all \
+ && rm -rf /var/cache/yum \
+;
+
+# non-root user
+ENV USER=doge
+ENV HOME /home/$USER
+RUN adduser -m -d $HOME $USER
+WORKDIR $HOME
+USER $USER
+
+# copy in staticly-compiled binaries from builder
+COPY --from=builder /usr/local/bin/dogecoind /usr/local/bin/dogecoind
+COPY --from=builder /usr/local/bin/dogecoin-cli /usr/local/bin/dogecoin-cli
+COPY --from=builder /usr/local/bin/dogecoin-tx /usr/local/bin/dogecoin-tx
+COPY --from=builder /usr/local/bin/test_dogecoin /usr/local/bin/test_dogecoin
+COPY --from=builder /usr/local/bin/bench_dogecoin /usr/local/bin/bench_dogecoin
+
+# dogecoind as entrypoint (could replace this with a script later)
+ENTRYPOINT ["/usr/local/bin/dogecoind"]
