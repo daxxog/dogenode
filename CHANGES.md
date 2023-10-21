@@ -1,4 +1,4 @@
-## 0.0.4 (unreleased)
+## 0.0.4 (2023-10-21)
 
 
 - Testing cache of first two build stages
