@@ -1,7 +1,7 @@
 ## 0.0.6 (unreleased)
 
 
-- Nothing changed yet.
+- Testing "full build" with fixes from `0.0.5`
 
 
 ## 0.0.5 (2023-10-21)
