@@ -1,5 +1,14 @@
 # vi:syntax=dockerfile
 
+ARG PHASE2_IMG
+FROM ${PHASE2_IMG} as builder
+
+# build doge
+RUN ./autogen.sh
+RUN CONFIG_SITE=$(pwd)/depends/$(uname -m)-linux-musl/share/config.site ./configure --enable-reduce-exports --enable-lto LDFLAGS="-Wl,-O2" LIBTOOL_APP_LDFLAGS="-all-static"
+RUN make -j$(nproc)
+
+
 FROM golang:1.18-bullseye as muslstack
 
 # upgrade and install debian packages
@@ -20,13 +29,7 @@ WORKDIR /usr/src/muslstack
 RUN git checkout d19cc5866abce3ca59dfc1666df7cc97097d0933 && go build main.go
 
 
-ARG PHASE2_IMG
-FROM ${PHASE2_IMG} as builder
-
-# build doge
-RUN ./autogen.sh
-RUN CONFIG_SITE=$(pwd)/depends/$(uname -m)-linux-musl/share/config.site ./configure --enable-reduce-exports --enable-lto LDFLAGS="-Wl,-O2" LIBTOOL_APP_LDFLAGS="-all-static"
-RUN make -j$(nproc)
+FROM builder as patcher
 
 # install doge
 RUN make install
@@ -40,6 +43,7 @@ RUN set -x \
     && muslstack -s 0x900000 /usr/local/bin/test_dogecoin \
     && muslstack -s 0x900000 /usr/local/bin/bench_dogecoin \
 ;
+
 
 # final stage output image
 FROM amazonlinux:2
@@ -59,11 +63,11 @@ WORKDIR $HOME
 USER $USER
 
 # copy in staticly-compiled binaries from builder
-COPY --from=builder /usr/local/bin/dogecoind /usr/local/bin/dogecoind
-COPY --from=builder /usr/local/bin/dogecoin-cli /usr/local/bin/dogecoin-cli
-COPY --from=builder /usr/local/bin/dogecoin-tx /usr/local/bin/dogecoin-tx
-COPY --from=builder /usr/local/bin/test_dogecoin /usr/local/bin/test_dogecoin
-COPY --from=builder /usr/local/bin/bench_dogecoin /usr/local/bin/bench_dogecoin
+COPY --from=patcher /usr/local/bin/dogecoind /usr/local/bin/dogecoind
+COPY --from=patcher /usr/local/bin/dogecoin-cli /usr/local/bin/dogecoin-cli
+COPY --from=patcher /usr/local/bin/dogecoin-tx /usr/local/bin/dogecoin-tx
+COPY --from=patcher /usr/local/bin/test_dogecoin /usr/local/bin/test_dogecoin
+COPY --from=patcher /usr/local/bin/bench_dogecoin /usr/local/bin/bench_dogecoin
 
 # dogecoind as entrypoint (could replace this with a script later)
 ENTRYPOINT ["/usr/local/bin/dogecoind"]
