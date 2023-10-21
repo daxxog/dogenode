@@ -1,4 +1,4 @@
-## 0.0.6 (unreleased)
+## 0.0.6 (2023-10-21)
 
 
 - Testing "full build" with fixes from `0.0.5`
