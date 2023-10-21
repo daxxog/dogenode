@@ -1,7 +1,7 @@
 ## 0.0.5 (unreleased)
 
 
-- Nothing changed yet.
+- Refactor of Dockerfile to fix build process, hopefully this works!
 
 
 ## 0.0.4 (2023-10-21)
