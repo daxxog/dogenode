@@ -1,1 +1,52 @@
-FROM daxxog/dogenode:phase1-0.0.3
+# vi:syntax=dockerfile
+FROM debian:bullseye
+
+# upgrade and install debian packages
+ENV DEBIAN_FRONTEND="noninteractive"
+# fix "September 30th problem"
+# https://github.com/nodesource/distributions/issues/1266#issuecomment-931597235
+RUN apt-get update; apt-get install -y ca-certificates && \
+    apt-get update \
+    && apt-get install apt-utils -y \
+    && apt-get upgrade -y \
+    && apt-get install -y \
+    build-essential \
+    autotools-dev \
+    automake \
+    libtool \
+    pkg-config \
+    bsdmainutils \
+    wget \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+;
+
+ENV DOGE_VERSION=v1.14.6
+ENV DOGE_ROOT=/usr/src/dogecoin
+ENV MUSL_CROSS_ROOT=/usr/src/musl-cross-make
+ENV MUSL_CROSS_COMMIT=fe915821b652a7fa37b34a596f47d8e20bc72338
+WORKDIR /usr/src
+
+# configure git for patching with am
+RUN git config --global user.email "dogecoin@example.com"
+RUN git config --global user.name "Doge"
+
+# download musl-cross-make source code
+RUN mkdir -p ${MUSL_CROSS_ROOT}/..
+WORKDIR ${MUSL_CROSS_ROOT}/..
+RUN git clone https://github.com/richfelker/musl-cross-make.git ${MUSL_CROSS_ROOT}
+
+# switch to musl-cross-make source code and checkout the commit hash
+WORKDIR ${MUSL_CROSS_ROOT}
+RUN git checkout ${MUSL_CROSS_COMMIT} -b tmpbuildenv && git clean -fdx
+
+# copy over and apply musl-cross-make patches
+COPY ./musl-cross-make-patches ./doge-patches
+RUN set -x \
+    && git apply ./doge-patches/*.diff \
+    && git am ./doge-patches/*.patch \
+;
+
+# compile musl-cross-make
+RUN make TARGET=$(uname -m)-linux-musl install -j$(nproc)
