@@ -1,7 +1,7 @@
 ## 0.0.4 (unreleased)
 
 
-- Nothing changed yet.
+- Testing cache of first two build stages
 
 
 ## 0.0.3 (2023-10-17)
