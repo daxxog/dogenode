@@ -1,4 +1,4 @@
-## 0.0.5 (unreleased)
+## 0.0.5 (2023-10-21)
 
 
 - Refactor of Dockerfile to fix build process, hopefully this works!
